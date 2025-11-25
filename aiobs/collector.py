@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextvars
 import json
 import os
 import threading
@@ -15,6 +16,11 @@ from .models import (
     ObservedEvent,
     ObservedFunctionEvent,
     ObservabilityExport,
+)
+
+# Context variable to track current span for nested tracing
+_current_span_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+    "_current_span_id", default=None
 )
 
 
@@ -94,11 +100,15 @@ class Collector:
                             ObservedEvent(session_id=sid, **ev.model_dump())
                         )
 
+            # Build trace tree from function events
+            trace_tree = _build_trace_tree(function_events)
+
             # Build a single JSON payload via pydantic models
             export = ObservabilityExport(
                 sessions=list(self._sessions.values()),
                 events=standard_events,
                 function_events=function_events,
+                trace_tree=trace_tree,
                 generated_at=_now(),
             )
 
@@ -186,6 +196,62 @@ class Collector:
                     )
             self._events[sid].append(ev)
 
+    # Span context management for nested tracing
+    def get_current_span_id(self) -> Optional[str]:
+        """Get the current span ID from context (for parent-child linking)."""
+        return _current_span_id.get()
+
+    def set_current_span_id(self, span_id: Optional[str]) -> contextvars.Token[Optional[str]]:
+        """Set the current span ID in context. Returns a token to restore previous value."""
+        return _current_span_id.set(span_id)
+
+    def reset_span_id(self, token: contextvars.Token[Optional[str]]) -> None:
+        """Reset the span ID to its previous value using the token."""
+        _current_span_id.reset(token)
+
 
 def _now() -> float:
     return time.time()
+
+
+def _build_trace_tree(events: List[ObservedFunctionEvent]) -> List[Dict[str, Any]]:
+    """Build a nested tree structure from flat events using span_id/parent_span_id."""
+    if not events:
+        return []
+
+    # Create lookup by span_id
+    events_by_span: Dict[str, Dict[str, Any]] = {}
+    for ev in events:
+        span_id = ev.span_id
+        if span_id:
+            node = ev.model_dump()
+            node["children"] = []
+            events_by_span[span_id] = node
+
+    # Build tree by linking children to parents
+    roots: List[Dict[str, Any]] = []
+    for ev in events:
+        span_id = ev.span_id
+        parent_id = ev.parent_span_id
+        if not span_id:
+            # Events without span_id go to roots
+            roots.append(ev.model_dump())
+            continue
+
+        node = events_by_span[span_id]
+        if parent_id and parent_id in events_by_span:
+            # Add as child of parent
+            events_by_span[parent_id]["children"].append(node)
+        else:
+            # No parent or parent not found -> root
+            roots.append(node)
+
+    # Sort roots and children by started_at for consistent ordering
+    def sort_by_time(nodes: List[Dict[str, Any]]) -> None:
+        nodes.sort(key=lambda n: n.get("started_at", 0))
+        for node in nodes:
+            if node.get("children"):
+                sort_by_time(node["children"])
+
+    sort_by_time(roots)
+    return roots

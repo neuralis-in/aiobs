@@ -34,6 +34,8 @@ class Event(BaseModel):
     ended_at: float
     duration_ms: float
     callsite: Optional[Callsite] = Field(default=None)
+    span_id: Optional[str] = Field(default=None)
+    parent_span_id: Optional[str] = Field(default=None)
 
 
 class FunctionEvent(BaseModel):
@@ -50,6 +52,8 @@ class FunctionEvent(BaseModel):
     ended_at: float
     duration_ms: float
     callsite: Optional[Callsite] = Field(default=None)
+    span_id: Optional[str] = Field(default=None)
+    parent_span_id: Optional[str] = Field(default=None)
 
 
 class ObservedEvent(Event):
@@ -65,5 +69,6 @@ class ObservabilityExport(BaseModel):
     sessions: List[Session]
     events: List[ObservedEvent]
     function_events: List[ObservedFunctionEvent] = Field(default_factory=list)
+    trace_tree: List[Any] = Field(default_factory=list)  # Nested tree structure
     generated_at: float
     version: int = 1

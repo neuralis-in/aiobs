@@ -7,6 +7,7 @@ import functools
 import inspect
 import os
 import time
+import uuid
 from typing import Any, Callable, Optional, TypeVar, Union, overload
 
 from .models import FunctionEvent, Callsite
@@ -117,6 +118,13 @@ def observe(
                 # Import here to avoid circular imports
                 from . import observer
 
+                # Generate unique span ID and get parent from context
+                span_id = str(uuid.uuid4())
+                parent_span_id = observer.get_current_span_id()
+
+                # Set this span as current for nested calls
+                token = observer.set_current_span_id(span_id)
+
                 started = time.time()
                 callsite = _get_callsite(skip_frames=2)
                 error_msg: Optional[str] = None
@@ -162,8 +170,13 @@ def observe(
                         ended_at=ended,
                         duration_ms=round((ended - started) * 1000, 3),
                         callsite=callsite,
+                        span_id=span_id,
+                        parent_span_id=parent_span_id,
                     )
                     observer._record_event(event)
+
+                    # Restore previous span context
+                    observer.reset_span_id(token)
 
             return async_wrapper  # type: ignore[return-value]
 
@@ -172,6 +185,13 @@ def observe(
             def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
                 # Import here to avoid circular imports
                 from . import observer
+
+                # Generate unique span ID and get parent from context
+                span_id = str(uuid.uuid4())
+                parent_span_id = observer.get_current_span_id()
+
+                # Set this span as current for nested calls
+                token = observer.set_current_span_id(span_id)
 
                 started = time.time()
                 callsite = _get_callsite(skip_frames=2)
@@ -218,8 +238,13 @@ def observe(
                         ended_at=ended,
                         duration_ms=round((ended - started) * 1000, 3),
                         callsite=callsite,
+                        span_id=span_id,
+                        parent_span_id=parent_span_id,
                     )
                     observer._record_event(event)
+
+                    # Restore previous span context
+                    observer.reset_span_id(token)
 
             return sync_wrapper  # type: ignore[return-value]
 
