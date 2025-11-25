@@ -1,5 +1,5 @@
-LLM Observability
-=================
+aiobs
+=====
 
 Minimal, extensible observability for LLM calls with three lines of code.
 
@@ -8,6 +8,12 @@ Minimal, extensible observability for LLM calls with three lines of code.
    <div class="hero">
      <p class="tagline">Observe requests, responses, timings, and errors for your LLM providers. Typed models, pluggable providers, single JSON export.</p>
    </div>
+
+Supported Providers
+-------------------
+
+- **OpenAI** — Chat Completions API (``openai>=1.0``)
+- **Google Gemini** — Generate Content API (``google-genai>=1.0``)
 
 Quick Start
 -----------

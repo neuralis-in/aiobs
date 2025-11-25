@@ -11,6 +11,6 @@ python-dotenv>=1.0
 pytest>=7
 
 # Documentation (optional)
-# sphinx>=7
-# furo>=2024.1.29
-
+sphinx>=7
+furo>=2024.1.29
+sphinx-copybutton>=0.5.2

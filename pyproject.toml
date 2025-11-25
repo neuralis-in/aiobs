@@ -5,13 +5,13 @@ build-backend = "hatchling.build"
 [project]
 name = "aiobs"
 version = "0.1.0"
-description = "Minimal, extensible LLM observability SDK (OpenAI supported)."
+description = "Minimal, extensible LLM observability SDK with OpenAI and Gemini support."
 readme = "README.md"
 requires-python = ">=3.8"
 authors = [
-  { name = "LLM Observability Authors" }
+  { name = "aiobs Authors" }
 ]
-keywords = ["llm", "observability", "tracing", "openai"]
+keywords = ["llm", "observability", "tracing", "openai", "gemini", "genai"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
@@ -32,6 +32,9 @@ dependencies = [
 openai = [
   "openai>=1.0.0,<2",
 ]
+gemini = [
+  "google-genai>=1.0.0",
+]
 example = [
   "python-dotenv>=1.0",
 ]
@@ -41,11 +44,16 @@ test = [
 docs = [
   "sphinx>=7",
   "furo>=2024.1.29",
+  "sphinx-copybutton>=0.5",
+]
+all = [
+  "aiobs[openai,gemini,example]",
 ]
 
 [project.urls]
-Homepage = "https://github.com/"
-Repository = "https://github.com/"
+Homepage = "https://github.com/neuralis-in/aiobs"
+Repository = "https://github.com/neuralis-in/aiobs"
+Documentation = "https://neuralis-in.github.io/aiobs/"
 
 [tool.hatch.build]
 exclude = [

@@ -2,19 +2,26 @@
 
 A tiny, extensible observability layer for LLM calls. Add three lines around your code and get JSON traces for requests, responses, timings, and errors.
 
+## Supported Providers
+
+- **OpenAI** — Chat Completions API (`openai>=1.0`)
+- **Google Gemini** — Generate Content API (`google-genai>=1.0`)
+
 ## Quick Install
 
-This repo bundles an example using OpenAI.
+```bash
+# Core only
+pip install aiobs
 
-- Install the package from source (with OpenAI + example extras):
-  - `pip install -e .[openai,example]`
-- Provide credentials in `.env` (at repo root or in `example/`):
-  - `OPENAI_API_KEY=your_key_here`
-  - optional: `OPENAI_MODEL=gpt-4o-mini`
+# With OpenAI support
+pip install aiobs[openai]
 
-Using the SDK in your own project:
-- `pip install .` installs the core (no provider deps).
-- `pip install .[openai]` adds OpenAI support.
+# With Gemini support
+pip install aiobs[gemini]
+
+# With all providers
+pip install aiobs[all]
+```
 
 ## Quick Start
 
@@ -22,12 +29,50 @@ Using the SDK in your own project:
 from aiobs import observer
 
 observer.observe()    # start a session and auto-instrument providers
-# ... make your LLM calls (e.g., OpenAI Chat Completions) ...
+# ... make your LLM calls (OpenAI, Gemini, etc.) ...
 observer.end()        # end the session
 observer.flush()      # write a single JSON file to disk
 ```
 
 By default, events flush to `./llm_observability.json`. Override with `LLM_OBS_OUT=/path/to/file.json`.
+
+## Provider Examples
+
+### OpenAI
+
+```python
+from aiobs import observer
+from openai import OpenAI
+
+observer.observe()
+
+client = OpenAI()
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+
+observer.end()
+observer.flush()
+```
+
+### Google Gemini
+
+```python
+from aiobs import observer
+from google import genai
+
+observer.observe()
+
+client = genai.Client()
+response = client.models.generate_content(
+    model="gemini-2.0-flash",
+    contents="Hello!"
+)
+
+observer.end()
+observer.flush()
+```
 
 ## Function Tracing with `@observe`
 
@@ -82,35 +127,43 @@ For each decorated function call:
 - Errors: exception name and message if the call fails
 - Callsite: file path, line number where the function was defined
 
-## Run the Example
+## Run the Examples
 
-- Simple single-file example:
-  - `python example/simple-chat-completion/chat.py`
-  - Prints the model’s reply and writes events to `llm_observability.json` in the repo root.
+- Simple OpenAI example:
+  ```bash
+  python example/simple-chat-completion/chat.py
+  ```
+
+- Gemini example:
+  ```bash
+  python example/gemini/main.py
+  ```
 
 - Multi-file pipeline example:
-  - `python -m example.pipeline.main "Explain vector databases to a backend engineer"`
-  - Runs a 3-step pipeline (research -> summarize -> critique) with multiple Chat Completions calls chained together.
+  ```bash
+  python -m example.pipeline.main "Explain vector databases to a backend engineer"
+  ```
 
-## What gets captured
+## What Gets Captured (LLM Calls)
 
-- Provider: `openai` (Chat Completions v1)
-- Request: model, first few `messages`, core params
-- Response: text, model, token usage (when available)
-- Timing: start/end timestamps, `duration_ms`
-- Errors: exception name and message if the call fails
-- Callsite: file path, line number, and function name where the API was called
+- **Provider**: `openai` or `gemini`
+- **API**: e.g., `chat.completions` or `models.generateContent`
+- **Request**: model, messages/contents, core parameters
+- **Response**: text, model, token usage (when available)
+- **Timing**: start/end timestamps, `duration_ms`
+- **Errors**: exception name and message if the call fails
+- **Callsite**: file path, line number, and function name where the API was called
 
 ## Data Models
 
 Internally, the SDK structures data with Pydantic models (v2):
 
-- `aiobs.models.Session` – Session metadata
-- `aiobs.models.Event` – LLM provider call event (e.g., OpenAI)
-- `aiobs.models.FunctionEvent` – Decorated function trace event
-- `aiobs.models.ObservedEvent` (Event + `session_id`)
-- `aiobs.models.ObservedFunctionEvent` (FunctionEvent + `session_id`)
-- `aiobs.models.ObservabilityExport` (flush payload)
+- `aiobs.Session` – Session metadata
+- `aiobs.Event` – LLM provider call event
+- `aiobs.FunctionEvent` – Decorated function trace event
+- `aiobs.ObservedEvent` (Event + `session_id`)
+- `aiobs.ObservedFunctionEvent` (FunctionEvent + `session_id`)
+- `aiobs.ObservabilityExport` (flush payload)
 
 These are exported to allow downstream tooling to parse and validate the JSON output and to build integrations.
 
@@ -118,13 +171,13 @@ These are exported to allow downstream tooling to parse and validate the JSON ou
 
 Providers are classes that implement a small abstract interface and install their own hooks.
 
-- Base class: `aiobs.providers.base.BaseProvider`
-- Built-in: `OpenAIProvider` (auto-detected and installed if `openai` is available)
+- Base class: `aiobs.BaseProvider`
+- Built-in: `OpenAIProvider`, `GeminiProvider` (auto-detected and installed if available)
 
 Custom provider skeleton:
 
 ```python
-from aiobs import BaseProvider
+from aiobs import BaseProvider, observer
 
 class MyProvider(BaseProvider):
     name = "my-provider"
@@ -145,24 +198,19 @@ class MyProvider(BaseProvider):
         return unpatch
 
 # Register before observe()
-from aiobs import observer
 observer.register_provider(MyProvider())
 observer.observe()
 ```
 
-If you don’t explicitly register providers, the collector auto-loads built-ins (OpenAI) when `observe()` is called.
-
 ## Architecture
 
-- Core
+- **Core**
   - `Collector` holds sessions/events and flushes a single JSON file.
   - `aiobs.models.*` define Pydantic schemas for sessions/events/export.
-- Providers (N-layered)
+- **Providers** (N-layered)
   - `providers/base.py`: `BaseProvider` interface.
-  - `providers/openai/provider.py`: orchestrates OpenAI API modules.
-  - `providers/openai/apis/base_api.py`: API module interface.
-  - `providers/openai/apis/chat_completions.py`: instruments `chat.completions.create`.
-  - `providers/openai/apis/models/*`: Pydantic request/response schemas per API.
+  - `providers/openai/`: OpenAI Chat Completions instrumentation.
+  - `providers/gemini/`: Google Gemini Generate Content instrumentation.
 
 Providers construct Pydantic request/response models and pass typed `Event` objects to the collector; only the collector serializes to JSON.
 
@@ -170,14 +218,16 @@ Providers construct Pydantic request/response models and pass typed `Event` obje
 
 Sphinx documentation lives under `docs/`.
 
-- Install docs deps (note the quotes for zsh):
-  - `pip install '.[docs]'`
+- Install docs deps:
+  ```bash
+  pip install aiobs[docs]
+  ```
 - Build HTML docs:
-  - `python -m sphinx -b html docs docs/_build/html`
+  ```bash
+  python -m sphinx -b html docs docs/_build/html
+  ```
 - Open `docs/_build/html/index.html` in your browser.
 
-GitHub Pages
-- Docs auto-deploy from `main` via GitHub Actions (pages.yml).
-- After merging to `main`, the site is available at:
-  - `https://neuralis-in.github.io/llm-observability/`
-  - If your org/user or repo name differs, GitHub Pages uses `https://<owner>.github.io/<repo>/`.
+**GitHub Pages**
+- Docs auto-deploy from `main` via GitHub Actions.
+- Site available at: https://neuralis-in.github.io/aiobs/

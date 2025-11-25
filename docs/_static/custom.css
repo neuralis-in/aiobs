@@ -1,21 +1,171 @@
-/* Brand colors for Furo theme */
+/* Brand colors for Furo theme - aiobs cyan/teal palette */
 :root {
-  --color-brand-primary: #3a86ff; /* blue */
-  --color-brand-content: #3a86ff;
+  --color-brand-primary: #0891b2;
+  --color-brand-content: #0891b2;
+  --color-sidebar-background: #f8fafc;
+  --color-sidebar-brand-text: #0f172a;
+  --navbar-bg: #0f172a;
+  --navbar-text: #f8fafc;
+  --navbar-accent: #22d3ee;
 }
 
 [data-theme="dark"] {
-  --color-brand-primary: #80b3ff; /* lighter blue for dark */
-  --color-brand-content: #80b3ff;
+  --color-brand-primary: #22d3ee;
+  --color-brand-content: #22d3ee;
+  --color-sidebar-background: #0f172a;
+  --color-sidebar-brand-text: #f8fafc;
+  --navbar-bg: #020617;
+  --navbar-text: #f8fafc;
+  --navbar-accent: #22d3ee;
 }
 
-/* Optional: tweak index hero */
+/* ===== TOP NAVBAR STYLING ===== */
+.announcement-banner {
+  background: var(--navbar-bg) !important;
+  padding: 0 !important;
+  border-bottom: 1px solid rgba(34, 211, 238, 0.2);
+}
+
+.top-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0.75rem 1.5rem;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.navbar-brand a {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--navbar-text) !important;
+  text-decoration: none !important;
+  letter-spacing: -0.025em;
+  transition: color 0.2s ease;
+}
+
+.navbar-brand a:hover {
+  color: var(--navbar-accent) !important;
+}
+
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.navbar-links a {
+  color: var(--navbar-text) !important;
+  text-decoration: none !important;
+  font-size: 0.9rem;
+  font-weight: 500;
+  opacity: 0.85;
+  transition: all 0.2s ease;
+  padding: 0.25rem 0;
+  border-bottom: 2px solid transparent;
+}
+
+.navbar-links a:hover {
+  opacity: 1;
+  color: var(--navbar-accent) !important;
+  border-bottom-color: var(--navbar-accent);
+}
+
+.navbar-links a svg {
+  vertical-align: middle;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+
+.navbar-links a:hover svg {
+  opacity: 1;
+}
+
+/* Responsive navbar */
+@media (max-width: 768px) {
+  .top-navbar {
+    padding: 0.5rem 1rem;
+  }
+  
+  .navbar-links {
+    gap: 1rem;
+  }
+  
+  .navbar-links a {
+    font-size: 0.8rem;
+  }
+  
+  /* Hide some links on mobile */
+  .navbar-links a:nth-child(3),
+  .navbar-links a:nth-child(4) {
+    display: none;
+  }
+}
+
+/* ===== HERO SECTION ===== */
 .hero {
-  padding: 1rem 0;
+  padding: 1.5rem 0;
+  margin-bottom: 1rem;
 }
 
 .hero .tagline {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
+  line-height: 1.6;
   color: var(--color-foreground-secondary);
 }
 
+/* ===== CODE BLOCKS ===== */
+.highlight {
+  border-radius: 8px;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar-logo img {
+  max-height: 50px;
+  width: auto;
+}
+
+/* ===== PROVIDER BADGES ===== */
+.provider-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.provider-badge.openai {
+  background-color: #10a37f20;
+  color: #10a37f;
+}
+
+.provider-badge.gemini {
+  background-color: #4285f420;
+  color: #4285f4;
+}
+
+/* ===== TABLES ===== */
+table.docutils {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* ===== ADMONITIONS ===== */
+.admonition {
+  border-radius: 8px;
+}
+
+/* ===== FOOTER ===== */
+.footer-content {
+  font-size: 0.875rem;
+}
+
+/* ===== ACCESSIBILITY ===== */
+a:focus,
+button:focus {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: 2px;
+}

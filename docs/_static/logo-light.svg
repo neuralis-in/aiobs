@@ -1,4 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" role="img" aria-label="LLM Observability">
-  <rect width="200" height="60" rx="8" fill="#3a86ff"/>
-  <text x="100" y="38" font-family="Arial, Helvetica, sans-serif" font-size="22" fill="#ffffff" text-anchor="middle">LLM OBS</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 70" role="img" aria-label="aiobs">
+  <defs>
+    <linearGradient id="circuit-gradient-light" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00bcd4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00e5ff;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="280" height="70" rx="10" fill="#0d1117"/>
+  
+  <!-- Circuit line left -->
+  <circle cx="25" cy="35" r="3" fill="#00e5ff"/>
+  <line x1="28" y1="35" x2="45" y2="35" stroke="#00e5ff" stroke-width="1.5"/>
+  
+  <!-- Letter 'a' -->
+  <text x="55" y="47" font-family="'Segoe UI', 'SF Pro Display', system-ui, sans-serif" font-size="32" font-weight="300" fill="#ffffff">a</text>
+  
+  <!-- Letter 'i' with dot as circuit node -->
+  <text x="80" y="47" font-family="'Segoe UI', 'SF Pro Display', system-ui, sans-serif" font-size="32" font-weight="300" fill="#ffffff">i</text>
+  <circle cx="87" cy="22" r="3" fill="#00e5ff"/>
+  
+  <!-- Letter 'o' with waveform inside -->
+  <text x="100" y="47" font-family="'Segoe UI', 'SF Pro Display', system-ui, sans-serif" font-size="32" font-weight="300" fill="#ffffff">o</text>
+  <!-- Waveform/heartbeat line through 'o' -->
+  <path d="M105 35 L110 35 L113 28 L117 42 L121 28 L125 42 L128 35 L135 35" 
+        stroke="#00e5ff" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Letter 'b' -->
+  <text x="142" y="47" font-family="'Segoe UI', 'SF Pro Display', system-ui, sans-serif" font-size="32" font-weight="300" fill="#ffffff">b</text>
+  
+  <!-- Letter 's' with circuit extension -->
+  <text x="170" y="47" font-family="'Segoe UI', 'SF Pro Display', system-ui, sans-serif" font-size="32" font-weight="300" fill="#ffffff">s</text>
+  
+  <!-- Circuit line right with branches -->
+  <line x1="195" y1="35" x2="220" y2="35" stroke="#00e5ff" stroke-width="1.5"/>
+  <line x1="220" y1="35" x2="235" y2="25" stroke="#00e5ff" stroke-width="1.5"/>
+  <line x1="220" y1="35" x2="235" y2="45" stroke="#00e5ff" stroke-width="1.5"/>
+  <circle cx="235" cy="25" r="3" fill="#00e5ff"/>
+  <circle cx="235" cy="45" r="3" fill="#00e5ff"/>
+  
+  <!-- Underline -->
+  <line x1="55" y1="54" x2="190" y2="54" stroke="#ffffff" stroke-width="1" opacity="0.6"/>
 </svg>

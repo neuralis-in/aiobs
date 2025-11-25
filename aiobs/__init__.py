@@ -8,7 +8,9 @@ Usage (global singleton):
     observer.end()      # end current session
     observer.flush()    # write a single JSON file to disk
 
-Extensible provider model with OpenAI support out of the box.
+Supported providers:
+    - OpenAI (chat.completions)
+    - Google Gemini (models.generate_content)
 
 Function tracing with @observe decorator:
 
@@ -24,10 +26,39 @@ Function tracing with @observe decorator:
 """
 
 from .collector import Collector
-from .providers.base import BaseProvider
 from .observe import observe
+from .providers.base import BaseProvider
+
+# Import models for type annotations and JSON parsing
+from .models import (
+    Session,
+    SessionMeta,
+    Event,
+    FunctionEvent,
+    ObservedEvent,
+    ObservedFunctionEvent,
+    ObservabilityExport,
+    Callsite,
+)
 
 # Global collector singleton, intentionally simple API
 observer = Collector()
 
-__all__ = ["observer", "observe", "Collector", "BaseProvider"]
+# Public API exports - only expose supported interfaces
+__all__ = [
+    # Primary API
+    "observer",
+    "observe",
+    # For custom provider development
+    "Collector",
+    "BaseProvider",
+    # Data models (for parsing/validation)
+    "Session",
+    "SessionMeta",
+    "Event",
+    "FunctionEvent",
+    "ObservedEvent",
+    "ObservedFunctionEvent",
+    "ObservabilityExport",
+    "Callsite",
+]
