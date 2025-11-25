@@ -6,7 +6,7 @@ import os
 import threading
 import time
 import uuid
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from .models import (
     Session as ObsSession,
@@ -104,8 +104,9 @@ class Collector:
                             ObservedEvent(session_id=sid, **ev.model_dump())
                         )
 
-            # Build trace tree from function events (if enabled)
-            trace_tree = _build_trace_tree(function_events) if include_trace_tree else []
+            # Build trace tree from all events (if enabled)
+            all_events_for_tree = standard_events + function_events
+            trace_tree = _build_trace_tree(all_events_for_tree) if include_trace_tree else []
 
             # Build a single JSON payload via pydantic models
             export = ObservabilityExport(
@@ -135,6 +136,14 @@ class Collector:
 
                 if OpenAIProvider.is_available():
                     self._providers.append(OpenAIProvider())
+            except Exception:
+                pass
+
+            try:
+                from .providers.gemini import GeminiProvider  # lazy import
+
+                if GeminiProvider.is_available():
+                    self._providers.append(GeminiProvider())
             except Exception:
                 pass
 
@@ -218,8 +227,11 @@ def _now() -> float:
     return time.time()
 
 
-def _build_trace_tree(events: List[ObservedFunctionEvent]) -> List[Dict[str, Any]]:
-    """Build a nested tree structure from flat events using span_id/parent_span_id."""
+def _build_trace_tree(events: List[Union[ObservedEvent, ObservedFunctionEvent]]) -> List[Dict[str, Any]]:
+    """Build a nested tree structure from flat events using span_id/parent_span_id.
+    
+    Includes both standard events (provider API calls) and function events (@observe decorated).
+    """
     if not events:
         return []
 
@@ -230,6 +242,8 @@ def _build_trace_tree(events: List[ObservedFunctionEvent]) -> List[Dict[str, Any
         if span_id:
             node = ev.model_dump()
             node["children"] = []
+            # Add event_type marker for easier identification
+            node["event_type"] = "function" if isinstance(ev, ObservedFunctionEvent) else "provider"
             events_by_span[span_id] = node
 
     # Build tree by linking children to parents
@@ -237,9 +251,22 @@ def _build_trace_tree(events: List[ObservedFunctionEvent]) -> List[Dict[str, Any
     for ev in events:
         span_id = ev.span_id
         parent_id = ev.parent_span_id
+        
+        node_data = ev.model_dump()
+        node_data["event_type"] = "function" if isinstance(ev, ObservedFunctionEvent) else "provider"
+        
         if not span_id:
-            # Events without span_id go to roots
-            roots.append(ev.model_dump())
+            # Events without span_id: check if they have a parent
+            if parent_id and parent_id in events_by_span:
+                # Add as child of parent (even without own span_id)
+                if "children" not in node_data:
+                    node_data["children"] = []
+                events_by_span[parent_id]["children"].append(node_data)
+            else:
+                # No parent or parent not found -> root
+                if "children" not in node_data:
+                    node_data["children"] = []
+                roots.append(node_data)
             continue
 
         node = events_by_span[span_id]

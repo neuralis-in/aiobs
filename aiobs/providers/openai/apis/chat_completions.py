@@ -112,11 +112,17 @@ class ChatCompletionsAPI(BaseOpenAIAPIModule):
             return None
 
         def wrapped(self, *args, **kwargs):  # type: ignore[no-redef]
+            import uuid
             started = time.time()
             request_info = _extract_request(args, kwargs)
             callsite = _get_callsite()
             error: Optional[str] = None
             response_info: Optional[ChatCompletionsResponse] = None
+            
+            # Capture parent span context for trace tree linking
+            parent_span_id = collector.get_current_span_id()
+            span_id = str(uuid.uuid4())
+            
             try:
                 resp = original_create(self, *args, **kwargs)
                 response_info = _extract_response(resp)
@@ -136,6 +142,8 @@ class ChatCompletionsAPI(BaseOpenAIAPIModule):
                     started_at=started,
                     ended_at=ended,
                     duration_ms=round((ended - started) * 1000, 3),
+                    span_id=span_id,
+                    parent_span_id=parent_span_id,
                 )
                 collector._record_event(event)
 
