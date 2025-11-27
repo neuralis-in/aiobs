@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextvars
 import json
+import logging
 import os
 import threading
 import time
@@ -20,6 +21,11 @@ from .models import (
 
 if TYPE_CHECKING:
     from .exporters.base import BaseExporter, ExportResult
+
+logger = logging.getLogger(__name__)
+
+# Default shepherd server URL for usage tracking
+SHEPHERD_SERVER_URL = "https://shepherd-api-48963996968.us-central1.run.app"
 
 # Context variable to track current span for nested tracing
 _current_span_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
@@ -44,14 +50,39 @@ class Collector:
         self._instrumented = False
         self._unpatchers: List[Callable[[], None]] = []
         self._providers: List[Any] = []  # instances of BaseProvider
+        self._api_key: Optional[str] = None
 
     # Public API
-    def observe(self, session_name: Optional[str] = None) -> str:
+    def observe(
+        self,
+        session_name: Optional[str] = None,
+        api_key: Optional[str] = None,
+    ) -> str:
         """Enable instrumentation (once) and start a new session.
 
+        Args:
+            session_name: Optional name for the session.
+            api_key: API key (aiobs_sk_...) for usage tracking with shepherd-server.
+                     Can also be set via AIOBS_API_KEY environment variable.
+
         Returns a session id.
+
+        Raises:
+            ValueError: If no API key is provided or the API key is invalid.
+            RuntimeError: If unable to connect to shepherd server.
         """
         with self._lock:
+            # Store API key (parameter takes precedence over env var)
+            self._api_key = api_key or os.getenv("AIOBS_API_KEY")
+
+            if not self._api_key:
+                raise ValueError(
+                    "API key is required. Provide api_key parameter or set AIOBS_API_KEY environment variable."
+                )
+
+            # Validate API key with shepherd server
+            self._validate_api_key()
+
             if not self._instrumented:
                 self._instrumented = True
                 self._install_instrumentation()
@@ -113,6 +144,9 @@ class Collector:
                             ObservedEvent(session_id=sid, **ev.model_dump())
                         )
 
+            # Count total traces for usage tracking (events + function_events)
+            trace_count = len(standard_events) + len(function_events)
+
             # Build trace tree from all events (if enabled)
             all_events_for_tree = standard_events + function_events
             trace_tree = _build_trace_tree(all_events_for_tree) if include_trace_tree else []
@@ -129,6 +163,9 @@ class Collector:
             # Use exporter if provided
             if exporter is not None:
                 result = exporter.export(export, **exporter_kwargs)
+                # Record usage if API key is configured
+                if self._api_key and trace_count > 0:
+                    self._record_usage(trace_count)
                 # Clear in-memory store after successful export
                 self._sessions.clear()
                 self._events.clear()
@@ -153,6 +190,10 @@ class Collector:
             # Write/overwrite JSON file
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(export.model_dump(), f, ensure_ascii=False, indent=2)
+
+            # Record usage if API key is configured
+            if self._api_key and trace_count > 0:
+                self._record_usage(trace_count)
 
             # Optionally clear in-memory store after flush
             self._sessions.clear()
@@ -202,6 +243,7 @@ class Collector:
             self._active_session = None
             self._sessions.clear()
             self._events.clear()
+            self._api_key = None
 
             # Unpatch providers
             for up in reversed(self._unpatchers):
@@ -212,6 +254,105 @@ class Collector:
             self._unpatchers.clear()
             self._providers.clear()
             self._instrumented = False
+
+    def _validate_api_key(self) -> None:
+        """Validate the API key with shepherd server.
+
+        Raises:
+            ValueError: If the API key is invalid.
+            RuntimeError: If unable to connect to shepherd server.
+        """
+        if not self._api_key:
+            return
+
+        import urllib.request
+        import urllib.error
+
+        url = f"{SHEPHERD_SERVER_URL}/v1/usage"
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+        }
+
+        try:
+            req = urllib.request.Request(url, headers=headers, method="GET")
+            with urllib.request.urlopen(req, timeout=10) as response:
+                result = json.loads(response.read().decode("utf-8"))
+                if result.get("success"):
+                    usage = result.get("usage", {})
+                    logger.debug(
+                        "API key validated: tier=%s, traces_used=%d/%d",
+                        usage.get("tier", "unknown"),
+                        usage.get("traces_used", 0),
+                        usage.get("traces_limit", 0),
+                    )
+                    if usage.get("is_rate_limited"):
+                        raise RuntimeError(
+                            f"Rate limit exceeded: tier={usage.get('tier')}, "
+                            f"used={usage.get('traces_used')}/{usage.get('traces_limit')}"
+                        )
+
+        except urllib.error.HTTPError as e:
+            if e.code == 401:
+                raise ValueError("Invalid API key provided to aiobs")
+            else:
+                raise RuntimeError(f"Failed to validate API key: HTTP {e.code}")
+        except urllib.error.URLError as e:
+            raise RuntimeError(f"Failed to connect to shepherd server: {e.reason}")
+
+    def _record_usage(self, trace_count: int) -> None:
+        """Record usage to shepherd-server.
+
+        Args:
+            trace_count: Number of traces to record.
+
+        Raises:
+            ValueError: If the API key is invalid.
+            RuntimeError: If rate limit is exceeded or server error occurs.
+        """
+        if not self._api_key:
+            return
+
+        import urllib.request
+        import urllib.error
+
+        url = f"{SHEPHERD_SERVER_URL}/v1/usage"
+        data = json.dumps({"trace_count": trace_count}).encode("utf-8")
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+
+        try:
+            req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+            with urllib.request.urlopen(req, timeout=10) as response:
+                result = json.loads(response.read().decode("utf-8"))
+                if result.get("success"):
+                    logger.debug(
+                        "Usage recorded: %d traces, %d remaining",
+                        trace_count,
+                        result.get("usage", {}).get("traces_remaining", "unknown"),
+                    )
+
+        except urllib.error.HTTPError as e:
+            if e.code == 401:
+                raise ValueError("Invalid API key provided to aiobs")
+            elif e.code == 429:
+                try:
+                    error_body = json.loads(e.read().decode("utf-8"))
+                    raise RuntimeError(
+                        f"Rate limit exceeded: {error_body.get('error', 'Unknown error')} "
+                        f"(tier: {error_body.get('usage', {}).get('tier', 'unknown')}, "
+                        f"used: {error_body.get('usage', {}).get('traces_used', 0)}/"
+                        f"{error_body.get('usage', {}).get('traces_limit', 0)})"
+                    )
+                except RuntimeError:
+                    raise
+                except Exception:
+                    raise RuntimeError("Rate limit exceeded for API key")
+            else:
+                raise RuntimeError(f"Failed to record usage: HTTP {e.code}")
+        except urllib.error.URLError as e:
+            raise RuntimeError(f"Failed to connect to shepherd server: {e.reason}")
 
     def _record_event(self, payload: Any) -> None:
         with self._lock:
