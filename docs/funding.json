@@ -1,0 +1,64 @@
+{
+  "version": "v1.0.0",
+  "entity": {
+    "type": "organisation",
+    "role": "owner",
+    "name": "aiobs",
+    "email": "pranavchiku11@gmail.com",
+    "phone": "9328276067",
+    "description": "An open, extensible Python SDK supporting AI observability and agentic traceability as part of the Shepherd project.",
+    "webpageUrl": {
+      "url": "https://neuralis-in.github.io/aiobs/getting_started.html",
+      "wellKnown": "https://neuralis-in.github.io/shepherd/"
+    }
+  },
+  "projects": [
+    {
+      "guid": "aiobs",
+      "name": "aiobs",
+      "description": "An open, extensible Python SDK supporting AI observability and agentic traceability as part of the Shepherd project.",
+      "webpageUrl": {
+        "url": "https://neuralis-in.github.io/aiobs/getting_started.html",
+        "wellKnown": "https://neuralis-in.github.io/shepherd/"
+      },
+      "repositoryUrl": {
+        "url": "https://github.com/neuralis-in/aiobs"
+      },
+      "licenses": [
+        "MIT"
+      ],
+      "tags": [
+        "developer-tools",
+        "python",
+        "sdk",
+        "ai",
+        "observability"
+      ]
+    }
+  ],
+  "funding": {
+    "channels": [
+      {
+        "guid": "bank",
+        "type": "bank",
+        "address": "Ground Floor, shop nos. 4,5 And 6, OPP near J D High School, Ahmedabad - 382345."
+      }
+    ],
+    "plans": [
+      {
+        "guid": "open-source-developer",
+        "status": "active",
+        "name": "Starter support plan",
+        "description": "aiobs is seeking multiple open-source contributors to advance the project across multiple fronts, including adding support for additional LLM providers such as Anthropic, LLaMA, and vLLM, and expanding coverage of all API endpoints for OpenAI and Gemini. Future development plans also include integrating evaluation frameworks and prompt-enhancement utilities.",
+        "amount": 25000,
+        "currency": "USD",
+        "frequency": "yearly",
+        "channels": [
+          "bank"
+        ]
+      }
+    ],
+    "history": []
+  }
+}
+

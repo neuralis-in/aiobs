@@ -24,6 +24,7 @@ templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 html_static_path = ["_static"]
+html_extra_path = ["funding.json"]
 html_css_files = ["custom.css"]
 
 # Pick theme dynamically: prefer Furo, fallback to Alabaster if missing
