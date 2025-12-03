@@ -29,6 +29,9 @@ logger = logging.getLogger(__name__)
 # Default shepherd server URL for usage tracking
 SHEPHERD_SERVER_URL = "https://shepherd-api-48963996968.us-central1.run.app"
 
+# Default flush server URL for trace storage
+AIOBS_FLUSH_SERVER_URL = "https://aiobs-flush-server-48963996968.us-central1.run.app"
+
 # Context variable to track current span for nested tracing
 _current_span_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
     "_current_span_id", default=None
@@ -284,6 +287,9 @@ class Collector:
             # Use exporter if provided
             if exporter is not None:
                 result = exporter.export(export, **exporter_kwargs)
+                # Flush traces to remote server
+                if self._api_key:
+                    self._flush_to_server(export)
                 # Record usage if API key is configured
                 if self._api_key and trace_count > 0:
                     self._record_usage(trace_count)
@@ -311,6 +317,10 @@ class Collector:
             # Write/overwrite JSON file
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(export.model_dump(), f, ensure_ascii=False, indent=2)
+
+            # Flush traces to remote server
+            if self._api_key:
+                self._flush_to_server(export)
 
             # Record usage if API key is configured
             if self._api_key and trace_count > 0:
@@ -590,6 +600,47 @@ class Collector:
                 raise RuntimeError(f"Failed to record usage: HTTP {e.code}")
         except urllib.error.URLError as e:
             raise RuntimeError(f"Failed to connect to shepherd server: {e.reason}")
+
+    def _flush_to_server(self, export: ObservabilityExport) -> None:
+        """Send trace data to the flush server.
+
+        Args:
+            export: The ObservabilityExport payload to send.
+
+        Raises:
+            ValueError: If the API key is invalid.
+            RuntimeError: If server error occurs.
+        """
+        if not self._api_key:
+            return
+
+        import urllib.request
+        import urllib.error
+
+        flush_server_url = os.getenv("AIOBS_FLUSH_SERVER_URL", AIOBS_FLUSH_SERVER_URL)
+        url = f"{flush_server_url}/v1/traces"
+        data = json.dumps(export.model_dump()).encode("utf-8")
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+
+        try:
+            req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+            with urllib.request.urlopen(req, timeout=30) as response:
+                result = json.loads(response.read().decode("utf-8"))
+                logger.debug(
+                    "Traces flushed to server: %s",
+                    result.get("message", "success"),
+                )
+
+        except urllib.error.HTTPError as e:
+            if e.code == 401:
+                raise ValueError("Invalid API key provided to aiobs")
+            else:
+                logger.warning(f"Failed to flush traces to server: HTTP {e.code}")
+        except urllib.error.URLError as e:
+            logger.warning(f"Failed to connect to flush server: {e.reason}")
 
     def _record_event(self, payload: Any) -> None:
         with self._lock:
