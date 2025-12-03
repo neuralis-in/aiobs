@@ -491,3 +491,9 @@ aiobs is an open, extensible Python SDK supporting AI observability and agentic 
 
 👉 [https://neuralis-in.github.io/shepherd/](https://neuralis-in.github.io/shepherd/)  
 👉 [https://github.com/neuralis-in/aiobs](https://github.com/neuralis-in/aiobs)
+
+## Community & Support
+
+Join the Zulip community for discussions, help, and feature requests:
+
+👉[https://aiobs.zulipchat.com/](Organisation URL: https://aiobs.zulipchat.com/)
