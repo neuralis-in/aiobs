@@ -22,6 +22,17 @@ Evaluate model response quality with built-in classifiers:
 
 - **OpenAIClassifier** — Uses OpenAI models to determine if responses are good, bad, or uncertain
 
+Evals
+-----
+
+Comprehensive evaluation framework for LLM outputs:
+
+- **RegexAssertion** — Check output matches regex patterns
+- **SchemaAssertion** — Validate JSON output against JSON Schema
+- **GroundTruthEval** — Compare output to expected ground truth
+- **LatencyConsistencyEval** — Check latency statistics
+- **PIIDetectionEval** — Detect PII leakage in outputs
+
 API Key
 -------
 
@@ -53,6 +64,7 @@ Contents
    getting_started
    usage
    classifier
+   evals
    architecture
 
 .. toctree::
