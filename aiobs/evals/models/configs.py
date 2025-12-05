@@ -340,4 +340,3 @@ class JailbreakDetectionConfig(BaseEvalConfig):
         ge=1,
         description="Maximum number of violations to extract and report"
     )
-
