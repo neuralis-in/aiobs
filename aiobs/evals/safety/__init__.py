@@ -9,5 +9,6 @@ from .toxicity_detection import ToxicityDetectionEval
 __all__ = [
     "PIIDetectionEval",
     "JailbreakDetectionEval",
+    "ToxicityDetectionEval",
 ]
 
