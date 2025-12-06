@@ -36,18 +36,6 @@ class ToxicityDetectionEval(BaseEval):
     """Evaluator that detects toxic content in model outputs using LLM-as-judge.
 
     Example:
-        config = ToxicityDetectionConfig(
-            model="gpt-4",
-            score_threshold=0.8,
-            fail_on_toxic=True
-        )
-        evaluator = ToxicityDetectionEval(config)
-    
-    This evaluator uses another LLM to analyze model outputs and identify
-    toxic content including hate speech, harassment, violence, profanity,
-    and discriminatory content.
-    
-    Example:
         from openai import OpenAI
         from aiobs.evals import ToxicityDetectionEval, EvalInput
         
