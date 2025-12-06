@@ -71,6 +71,9 @@ from .reliability import (
 from .safety import (
     PIIDetectionEval,
 )
+from .safety.toxicity_detection import ToxicityDetectionEval
+from .models.configs import ToxicityDetectionConfig
+
 
 __all__ = [
     # Base
@@ -89,6 +92,7 @@ __all__ = [
     "LatencyConsistencyConfig",
     "PIIDetectionConfig",
     "PIIType",
+    "ToxicityDetectionConfig",
     "HallucinationDetectionConfig",
     # Correctness evaluators
     "RegexAssertion",
@@ -99,5 +103,6 @@ __all__ = [
     "LatencyConsistencyEval",
     # Safety evaluators
     "PIIDetectionEval",
+    "ToxicityDetectionEval",
 ]
 
