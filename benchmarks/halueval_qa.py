@@ -13,7 +13,7 @@ from aiobs import observer
 
 # configurations (defaults)
 JUDGE_MODEL = "gemini-2.5-flash"               # judge model: gemini-flash-2.5 as of now  
-SAMPLE_SIZE = 10                  # None = full dataset, or set e.g., 200
+SAMPLE_SIZE = None                  # None = full dataset, or set e.g., 200
 OUTPUT_FILE = "halueval_results.json"
 DATA_URL = "https://raw.githubusercontent.com/RUCAIBox/HaluEval/main/data/qa_data.json"
 
@@ -117,7 +117,7 @@ if(__name__ == "__main__"):
     from dotenv import load_dotenv
     from getpass import getpass
     load_dotenv()
-
+    SAMPLE_SIZE = 10
     if not (gemini_api_key := os.getenv("GEMINI_API_KEY")):
         gemini_api_key = getpass("Enter your Gemini API key: ")
     os.environ["GEMINI_API_KEY"] = gemini_api_key
