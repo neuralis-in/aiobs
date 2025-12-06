@@ -1,29 +1,29 @@
 """Benchmark HallucinationDetectionEval against HaluEvalQA."""
 
 import json
+import requests   #newly added dependency
 import asyncio
 from pathlib import Path
 from typing import Dict, List
-from openai import OpenAI
-from tqdm import tqdm
+from google import genai
+from tqdm import tqdm     #newly added dependency
 from aiobs.evals import HallucinationDetectionEval, EvalInput
 from aiobs import observer
 
 
 # configurations (defaults)
-DATA_PATH = "./benchmarks/data/qa_data.json"      # path to dataset
-JUDGE_MODEL = "gpt-4o"               # judge model: gpt-4o as of now  
-SAMPLE_SIZE = None                   # None = full dataset, or set e.g., 200
+JUDGE_MODEL = "gemini-2.5-flash"               # judge model: gemini-flash-2.5 as of now  
+SAMPLE_SIZE = 10                  # None = full dataset, or set e.g., 200
 OUTPUT_FILE = "halueval_results.json"
+DATA_URL = "https://raw.githubusercontent.com/RUCAIBox/HaluEval/main/data/qa_data.json"
 
 
-
-
-def load_halueval_qa(path: str) -> List[Dict]:
-    """Load HaluEvalQA dataset."""
-    with open(path) as f:
-        lines = f.readlines()
-        return [json.loads(line) for line in lines]
+def load_halueval_qa(url: str) -> List[Dict]:
+    """Fetch HaluEvalQA dataset from GitHub raw using HTTP GET."""
+    response = requests.get(url)
+    response.raise_for_status()
+    lines = response.text.strip().split("\n")
+    return [json.loads(line) for line in lines]
 
 
 def run_benchmark(
@@ -95,11 +95,11 @@ def run_benchmark(
 def main():
     observer.observe("Hallucination Benchmarking")
     
-    dataset = load_halueval_qa(DATA_PATH)
+    dataset = load_halueval_qa(DATA_URL)
 
-    client = OpenAI()
+    client = genai.Client()
 
-    evaluation_model = HallucinationDetectionEval(client=client , model=JUDGE_MODEL)
+    evaluation_model = HallucinationDetectionEval.with_gemini(client=client , model=JUDGE_MODEL)
 
     metrics = run_benchmark(evaluator=evaluation_model , data=dataset , sample_size=SAMPLE_SIZE)
 
@@ -110,5 +110,15 @@ def main():
     observer.flush(OUTPUT_FILE)
 
 
+#===================TESTING ONLY=============
+
 if(__name__ == "__main__"):
+    import os
+    from dotenv import load_dotenv
+    from getpass import getpass
+    load_dotenv()
+
+    if not (gemini_api_key := os.getenv("GEMINI_API_KEY")):
+        gemini_api_key = getpass("Enter your Gemini API key: ")
+    os.environ["GEMINI_API_KEY"] = gemini_api_key
     main()
