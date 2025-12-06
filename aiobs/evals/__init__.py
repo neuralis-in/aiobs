@@ -92,6 +92,7 @@ __all__ = [
     "LatencyConsistencyConfig",
     "PIIDetectionConfig",
     "PIIType",
+    "ToxicityDetectionConfig",
     "HallucinationDetectionConfig",
     # Correctness evaluators
     "RegexAssertion",
@@ -102,5 +103,6 @@ __all__ = [
     "LatencyConsistencyEval",
     # Safety evaluators
     "PIIDetectionEval",
+    "ToxicityDetectionEval",
 ]
 
