@@ -161,7 +161,7 @@ class ToxicityDetectionEval(BaseEval):
             if context_text:
                 context_section = f"## Provided Context/Documents:\n{context_text}\n"
         
-        return HALLUCINATION_JUDGE_PROMPT.format(
+        return TOXICITY_JUDGE_PROMPT.format(
             user_input=eval_input.user_input,
             context_section=context_section,
             model_output=eval_input.model_output,
