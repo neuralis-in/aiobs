@@ -26,6 +26,7 @@ classifiers = [
 
 dependencies = [
   "furo>=2024.1.29",
+  "google-genai>=1.53.0",
   "openai>=1.0.0,<2",
   "pydantic>=2",
   "pytest>=7",
