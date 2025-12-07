@@ -20,12 +20,14 @@ jobs:
     # Skip draft PRs and prevent duplicate runs:
     # - For pull_request: only run if NOT from a fork (same repo PRs)
     # - For pull_request_target: only run if FROM a fork
-    if: |
-      github.event.pull_request.draft == false &&
-      (
-        (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
-        (github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository)
-      )
+    # if: |
+    #   github.event.pull_request.draft == false &&
+    #   (
+    #     (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
+    #     (github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository)
+    #   )
+    # keep it off for now
+    if: false
 
     steps:
       # SECURITY: Checkout BASE branch only, NOT the PR head
