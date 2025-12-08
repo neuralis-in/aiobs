@@ -55,6 +55,7 @@ from .models import (
     HallucinationDetectionConfig,
     SQLQueryValidatorConfig,
     JailbreakDetectionConfig,
+    ToxicityDetectionConfig,
 )
 
 # Correctness evaluators
@@ -76,6 +77,8 @@ from .safety import (
     PIIDetectionEval,
     JailbreakDetectionEval,
 )
+from .safety.toxicity_detection import ToxicityDetectionEval
+
 
 __all__ = [
     # Base
@@ -94,6 +97,7 @@ __all__ = [
     "LatencyConsistencyConfig",
     "PIIDetectionConfig",
     "PIIType",
+    "ToxicityDetectionConfig",
     "HallucinationDetectionConfig",
     "SQLQueryValidatorConfig",
     "JailbreakDetectionConfig",
@@ -108,5 +112,6 @@ __all__ = [
     # Safety evaluators
     "PIIDetectionEval",
     "JailbreakDetectionEval",
+    "ToxicityDetectionEval",
 ]
 
