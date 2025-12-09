@@ -48,6 +48,8 @@ pip install aiobs[all]
 An API key is required to use aiobs. Get your free API key from:  
 👉 [https://neuralis-in.github.io/shepherd/api-keys](https://neuralis-in.github.io/shepherd/api-keys)
 
+You can also use an OpenAI API key (link: https://platform.openai.com/account/api-keys) (including free trial/credit) to test the OpenAI examples locally.
+
 Once you have your API key, set it as an environment variable:
 
 ```bash
@@ -418,7 +420,6 @@ class MyProvider(BaseProvider):
         def unpatch():
             pass
         return unpatch
-        
 # Register before observe()
 observer.register_provider(MyProvider())
 observer.observe()
