@@ -45,6 +45,9 @@ vertexai = [
 sql = [
   "sqlglot>=20.0.0",
 ]
+s3 = [
+  "boto3>=1.26.0",
+]
 example = [
   "python-dotenv>=1.0",
 ]

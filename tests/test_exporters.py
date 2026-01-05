@@ -13,6 +13,7 @@ from aiobs.exporters import (
     CustomExporter,
     CompositeExporter,
     GCSExporter,
+    S3Exporter,
 )
 
 
@@ -437,6 +438,197 @@ class TestGCSExporter:
 
         # Should use the override, not the template
         mock_bucket.blob.assert_called_once_with("traces/custom-filename.json")
+
+
+# =============================================================================
+# S3Exporter Tests
+# =============================================================================
+
+class TestS3Exporter:
+    def test_initialization(self):
+        exporter = S3Exporter(
+            bucket="my-bucket",
+            prefix="traces/",
+            region="us-west-2",
+            aws_access_key_id="test-key",
+            aws_secret_access_key="test-secret",
+        )
+        assert exporter.bucket == "my-bucket"
+        assert exporter.prefix == "traces/"
+        assert exporter.region == "us-west-2"
+        assert exporter.aws_access_key_id == "test-key"
+        assert exporter.aws_secret_access_key == "test-secret"
+        assert exporter.name == "s3"
+
+    def test_prefix_normalization(self):
+        # Without trailing slash
+        exp1 = S3Exporter(bucket="b", prefix="traces")
+        assert exp1.prefix == "traces/"
+
+        # With trailing slash
+        exp2 = S3Exporter(bucket="b", prefix="traces/")
+        assert exp2.prefix == "traces/"
+
+        # Empty prefix
+        exp3 = S3Exporter(bucket="b", prefix="")
+        assert exp3.prefix == ""
+
+    def test_filename_template(self):
+        exporter = S3Exporter(
+            bucket="b",
+            filename_template="{date}-{session_id}.json",
+        )
+        assert exporter.filename_template == "{date}-{session_id}.json"
+
+    def test_generate_filename(self):
+        exporter = S3Exporter(bucket="b", filename_template="{session_id}.json")
+        data = _create_mock_export(session_id="test-session-123")
+        filename = exporter._generate_filename(data)
+        assert filename == "test-session-123.json"
+
+    def test_generate_filename_empty_sessions(self):
+        exporter = S3Exporter(bucket="b", filename_template="{session_id}.json")
+        data = ObservabilityExport(
+            sessions=[],
+            events=[],
+            function_events=[],
+            generated_at=0.0,
+        )
+        filename = exporter._generate_filename(data)
+        assert filename == "unknown.json"
+
+    def test_export_success(self):
+        """Test successful export by injecting a mock client."""
+        # Setup mocks
+        mock_client = MagicMock()
+        mock_client.put_object = MagicMock()
+
+        exporter = S3Exporter(
+            bucket="test-bucket",
+            prefix="traces/",
+            region="us-east-1",
+        )
+        # Inject mock client directly
+        exporter._client = mock_client
+
+        data = _create_mock_export(session_id="sess-123")
+        result = exporter.export(data)
+
+        # Verify put_object was called with correct parameters
+        mock_client.put_object.assert_called_once()
+        call_kwargs = mock_client.put_object.call_args[1]
+        assert call_kwargs["Bucket"] == "test-bucket"
+        assert call_kwargs["Key"] == "traces/sess-123.json"
+        assert call_kwargs["ContentType"] == "application/json"
+
+        # Verify result
+        assert result.success is True
+        assert result.destination == "s3://test-bucket/traces/sess-123.json"
+        assert result.metadata["bucket"] == "test-bucket"
+        assert result.metadata["key"] == "traces/sess-123.json"
+        assert result.metadata["region"] == "us-east-1"
+
+    def test_export_upload_content(self):
+        """Test that the exported JSON contains correct data."""
+        mock_client = MagicMock()
+        mock_client.put_object = MagicMock()
+
+        exporter = S3Exporter(bucket="test-bucket")
+        exporter._client = mock_client
+
+        data = _create_mock_export(session_id="test-sess")
+        exporter.export(data)
+
+        # Get the uploaded content
+        call_kwargs = mock_client.put_object.call_args[1]
+        uploaded_bytes = call_kwargs["Body"]
+        uploaded_data = json.loads(uploaded_bytes.decode("utf-8"))
+
+        assert len(uploaded_data["sessions"]) == 1
+        assert uploaded_data["sessions"][0]["id"] == "test-sess"
+        assert uploaded_data["version"] == 1
+
+    def test_export_missing_dependency(self):
+        exporter = S3Exporter(bucket="test-bucket")
+        exporter._client = None  # Ensure client needs to be created
+
+        # Patch the import to fail
+        with patch.dict("sys.modules", {"boto3": None}):
+            with pytest.raises(ExportError, match="boto3 is required"):
+                exporter._get_client()
+
+    def test_from_env_missing_bucket(self, monkeypatch):
+        monkeypatch.delenv("AIOBS_S3_BUCKET", raising=False)
+        with pytest.raises(ExportError, match="AIOBS_S3_BUCKET is required"):
+            S3Exporter.from_env()
+
+    def test_from_env_success(self, monkeypatch):
+        monkeypatch.setenv("AIOBS_S3_BUCKET", "env-bucket")
+        monkeypatch.setenv("AIOBS_S3_REGION", "us-west-2")
+        monkeypatch.setenv("AIOBS_S3_PREFIX", "env-prefix/")
+        monkeypatch.setenv("AWS_ACCESS_KEY_ID", "env-key")
+        monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "env-secret")
+        monkeypatch.setenv("AWS_SESSION_TOKEN", "env-token")
+
+        exporter = S3Exporter.from_env()
+        assert exporter.bucket == "env-bucket"
+        assert exporter.region == "us-west-2"
+        assert exporter.prefix == "env-prefix/"
+        assert exporter.aws_access_key_id == "env-key"
+        assert exporter.aws_secret_access_key == "env-secret"
+        assert exporter.aws_session_token == "env-token"
+
+    def test_export_with_custom_metadata(self):
+        """Test that custom metadata is set on the object."""
+        mock_client = MagicMock()
+        mock_client.put_object = MagicMock()
+
+        exporter = S3Exporter(bucket="test-bucket")
+        exporter._client = mock_client
+
+        data = _create_mock_export()
+
+        custom_meta = {"environment": "production", "version": "1.0"}
+        exporter.export(data, metadata=custom_meta)
+
+        # Verify metadata was set on the object
+        call_kwargs = mock_client.put_object.call_args[1]
+        assert "Metadata" in call_kwargs
+        assert call_kwargs["Metadata"]["environment"] == "production"
+        assert call_kwargs["Metadata"]["version"] == "1.0"
+
+    def test_export_failure(self):
+        """Test that export failure raises ExportError."""
+        mock_client = MagicMock()
+        mock_client.put_object = MagicMock()
+        mock_client.put_object.side_effect = Exception("Upload failed")
+
+        exporter = S3Exporter(bucket="test-bucket")
+        exporter._client = mock_client
+
+        data = _create_mock_export()
+
+        with pytest.raises(ExportError, match="Failed to export to S3"):
+            exporter.export(data)
+
+    def test_export_with_filename_override(self):
+        """Test that filename kwarg overrides template."""
+        mock_client = MagicMock()
+        mock_client.put_object = MagicMock()
+
+        exporter = S3Exporter(
+            bucket="test-bucket",
+            prefix="traces/",
+            filename_template="{session_id}.json",
+        )
+        exporter._client = mock_client
+
+        data = _create_mock_export(session_id="original-session")
+        exporter.export(data, filename="custom-filename.json")
+
+        # Should use the override, not the template
+        call_kwargs = mock_client.put_object.call_args[1]
+        assert call_kwargs["Key"] == "traces/custom-filename.json"
 
 
 # =============================================================================
