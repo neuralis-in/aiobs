@@ -223,3 +223,10 @@ class GeminiLLM(BaseLLM):
         response = self.client.models.generate_content(**call_kwargs)
         return self._parse_response(response)
 
+    def embed(self, text: str, **kwargs: Any) -> List[float]:
+        """Generate embeddings using Gemini embeddings API."""
+        response = self.client.models.embed_content(
+            model="embedding-001",
+            contents=text,
+        )
+        return response.embeddings[0].values

@@ -149,6 +149,12 @@ class BaseLLM(ABC):
         prompt = "\n".join(prompt_parts) if prompt_parts else ""
         return await self.complete_async(prompt, system_prompt=system_prompt, **kwargs)
     
+    @abstractmethod
+    def embed(self, text: str, **kwargs: Any) -> List[float]:
+        """Generate embedding for text."""
+        raise NotImplementedError
+
+    
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(model={self.model!r}, provider={self.provider!r})"
 

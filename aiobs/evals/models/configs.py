@@ -340,3 +340,22 @@ class JailbreakDetectionConfig(BaseEvalConfig):
         ge=1,
         description="Maximum number of violations to extract and report"
     )
+
+class SemanticSimilarityConfig(BaseEvalConfig):
+    """Configuration for SemanticSimilarityEval.
+    
+    Compares model output and expected output using embedding-based
+    cosine similarity.
+    """
+
+    threshold: float = Field(
+        default=0.6,
+        ge=0.0,
+        le=1.0,
+        description="Minimum cosine similarity required to pass"
+    )
+
+    embedding_model: str = Field(
+        default="text-embedding-3-small",
+        description="Embedding model to use for similarity comparison"
+    )

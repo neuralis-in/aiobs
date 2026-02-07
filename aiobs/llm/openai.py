@@ -211,4 +211,11 @@ class OpenAILLM(BaseLLM):
         
         response = self.client.chat.completions.create(**call_kwargs)
         return self._parse_response(response)
-
+    
+    def embed(self, text: str, **kwargs: Any) -> List[float]:
+        """Generate embeddings using OpenAI embeddings API."""
+        response = self.client.embeddings.create(
+            model="text-embedding-3-small",
+            input=text,
+        )
+        return response.data[0].embedding
