@@ -340,3 +340,12 @@ class JailbreakDetectionConfig(BaseEvalConfig):
         ge=1,
         description="Maximum number of violations to extract and report"
     )
+class CoherenceEvalConfig(BaseEvalConfig):
+    """Configuration for coherence evaluation."""
+
+    threshold: float = Field(
+        default=0.6,
+        ge=0.0,
+        le=1.0,
+        description="Minimum coherence score required to pass"
+    )

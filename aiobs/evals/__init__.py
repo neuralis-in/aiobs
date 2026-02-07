@@ -56,6 +56,7 @@ from .models import (
     SQLQueryValidatorConfig,
     JailbreakDetectionConfig,
     ToxicityDetectionConfig,
+    CoherenceEvalConfig,
 )
 
 # Correctness evaluators
@@ -65,6 +66,7 @@ from .correctness import (
     GroundTruthEval,
     HallucinationDetectionEval,
     SQLQueryValidator,
+    CoherenceEval,
 )
 
 # Reliability evaluators
@@ -101,6 +103,7 @@ __all__ = [
     "HallucinationDetectionConfig",
     "SQLQueryValidatorConfig",
     "JailbreakDetectionConfig",
+    "CoherenceEvalConfig",
     # Correctness evaluators
     "RegexAssertion",
     "SchemaAssertion",
@@ -113,5 +116,6 @@ __all__ = [
     "PIIDetectionEval",
     "JailbreakDetectionEval",
     "ToxicityDetectionEval",
+    "CoherenceEval",
 ]
 

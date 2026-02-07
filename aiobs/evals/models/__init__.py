@@ -16,7 +16,8 @@ from .configs import (
     HallucinationDetectionConfig,
     SQLQueryValidatorConfig,
     JailbreakDetectionConfig,
-    ToxicityDetectionConfig,    
+    ToxicityDetectionConfig, 
+    CoherenceEvalConfig, 
 )
 
 __all__ = [
@@ -38,5 +39,6 @@ __all__ = [
     "SQLQueryValidatorConfig",
     "JailbreakDetectionConfig",
     "ToxicityDetectionConfig",
+    "CoherenceEvalConfig",
 ]
 
